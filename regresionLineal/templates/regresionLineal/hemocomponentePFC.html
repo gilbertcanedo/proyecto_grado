@@ -1,0 +1,110 @@
+{% extends "regresion/regresion_base.html" %}
+
+{% load static %}
+{% block title %}Predicción de Plasma Fresco Congelado{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4>Predicción de Plasma Fresco Congelado (PFC)</h4>
+        </div>
+        <div class="card-body">
+
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                <div class="col-md-6">
+                    <label for="mes" class="form-label">Mes:</label>
+                    <select name="mes" id="mes" class="form-select" required>
+                        <option value="">-- Mes --</option>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="anio" class="form-label">Año:</label>
+                    <input type="number" name="anio" id="anio" class="form-control" min="2025" placeholder="Ej: 2025" required>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-success">Predecir</button>
+                </div>
+            </form>
+
+            {% if resultado %}
+                <div class="alert alert-info mt-4">
+                    <strong>Resultado:</strong> En <b>{{ mes_texto }} {{ anio_seleccionado }}</b>, se estiman <b>{{ resultado }}</b> unidades de PFC.
+                </div>
+            {% endif %}
+
+            {% if error %}
+                <div class="alert alert-danger mt-4">{{ error }}</div>
+            {% endif %}
+
+            {% if datos_historicos %}
+                <div class="mt-5">
+                    <canvas id="grafica" height="100"></canvas>
+                </div>
+            {% endif %}
+
+            {% if mae_train %}
+                <h5 class="mt-4">Métricas del Modelo:</h5>
+                <ul class="list-group">
+                    <li class="list-group-item">MAE Entrenamiento: <b>{{ mae_train }}</b></li>
+                    <li class="list-group-item">RMSE Entrenamiento: <b>{{ rmse_train }}</b></li>
+                    <li class="list-group-item">R² Entrenamiento: <b>{{ r2_train }}</b></li>
+                    <li class="list-group-item">MAE Test: <b>{{ mae_test }}</b></li>
+                    <li class="list-group-item">RMSE Test: <b>{{ rmse_test }}</b></li>
+                    
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if datos_historicos %}
+    const ctx = document.getElementById('grafica').getContext('2d');
+    const datosHistoricos = {{ datos_historicos|safe }};
+    const datosPredicciones = {{ datos_predicciones|safe }};
+
+    const labels = datosHistoricos.map(d => d.fecha).concat(datosPredicciones.map(d => d.fecha));
+    const valoresHist = datosHistoricos.map(d => d.valor);
+    const valoresPred = Array(valoresHist.length).fill(null).concat(datosPredicciones.map(d => d.valor));
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Histórico',
+                    data: valoresHist,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                },
+                {
+                    label: 'Predicción Futura',
+                    data: valoresPred,
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                }
+            ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+{% endif %}
+</script>
+{% endblock %}
